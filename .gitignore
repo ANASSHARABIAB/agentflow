@@ -1,0 +1,15 @@
+# Python
+*.pyc
+__pycache__/
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+# Logs
+*.log
+# IDEs
+.vscode/
+.idea/
+# Node (UI)
+node_modules/
