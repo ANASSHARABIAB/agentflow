@@ -9,9 +9,9 @@ provider "google" {
 
 # Global bucket for shared knowledge base and prompts
 resource "google_storage_bucket" "shared_knowledgebase" {
-  name          = "${var.project_id}-shared-knowledgebase"
-  location      = var.gcs_location
-  force_destroy = true
+  name                        = "${var.project_id}-shared-knowledgebase"
+  location                    = var.gcs_location
+  force_destroy               = true
   uniform_bucket_level_access = true
 
   lifecycle_rule {
@@ -26,12 +26,17 @@ resource "google_storage_bucket" "shared_knowledgebase" {
 
 # User data bucket (documents, saved prompts, uploads)
 resource "google_storage_bucket" "user_data" {
-  name          = "${var.project_id}-user-data"
-  location      = var.gcs_location
-  force_destroy = true
+  name                        = "${var.project_id}-user-data"
+  location                    = var.gcs_location
+  force_destroy               = true
   uniform_bucket_level_access = true
 }
 
+# Service account for Cloud Run
+resource "google_service_account" "upload_service_sa" {
+  account_id   = "upload-service-sa"
+  display_name = "Upload Service Cloud Run Service Account"
+}
 
 resource "google_cloud_run_service" "upload_service" {
   name     = "upload-service"
@@ -40,7 +45,7 @@ resource "google_cloud_run_service" "upload_service" {
   template {
     spec {
       containers {
-        image = "gcr.io/${var.project_id}/upload-service:latest"   # Adjust tag as needed
+        image = "gcr.io/${var.project_id}/upload-service:latest" # Adjust tag as needed
 
         env {
           name  = "USER_BUCKET"
@@ -51,7 +56,7 @@ resource "google_cloud_run_service" "upload_service" {
           value = google_storage_bucket.shared_knowledgebase.name
         }
       }
-      service_account_name = google_service_account.upload_service_sa.email  # Create a dedicated SA if needed
+      service_account_name = google_service_account.upload_service_sa.email
     }
   }
 
@@ -63,11 +68,9 @@ resource "google_cloud_run_service" "upload_service" {
 
 # Allow public unauthenticated invocations (for public API)
 resource "google_cloud_run_service_iam_member" "public_invoker" {
-  location        = google_cloud_run_service.upload_service.location
-  project         = var.project_id
-  service         = google_cloud_run_service.upload_service.name
-  role            = "roles/run.invoker"
-  member          = "allUsers"
+  location = google_cloud_run_service.upload_service.location
+  project  = var.project_id
+  service  = google_cloud_run_service.upload_service.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
-
-
