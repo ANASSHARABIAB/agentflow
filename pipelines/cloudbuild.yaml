@@ -1,0 +1,98 @@
+# pipelines/cloudbuild.yaml
+
+# Set the default Terraform var file and GCP region as substitutions.
+substitutions:
+  _TFVARS_FILE: "dev.tfvars"
+  _GCP_REGION: "us-central1"
+  _SERVICE_NAME: "file-parser"
+
+# Trigger this pipeline with _TFVARS_FILE set to dev.tfvars, test.tfvars, or preprod.tfvars as needed.
+
+steps:
+  # 1. Terraform Format & Lint Check
+  - name: "hashicorp/terraform:light"
+    id: "Terraform Format"
+    entrypoint: "sh"
+    args: ["-c", "terraform fmt -check && echo 'Terraform format check passed.'"]
+    dir: "terraform"
+
+  - name: "ghcr.io/terraform-linters/tflint"
+    id: "Terraform Lint"
+    args: ["--format", "json"]
+    dir: "terraform"
+
+  # 2. Terraform Init
+  - name: "hashicorp/terraform:light"
+    id: "Terraform Init"
+    entrypoint: "sh"
+    args: ["-c", "terraform init"]
+    dir: "terraform"
+
+  # 3. Terraform Plan
+  - name: "hashicorp/terraform:light"
+    id: "Terraform Plan"
+    entrypoint: "sh"
+    args: [
+      "-c",
+      "terraform plan -var-file=${_TFVARS_FILE} -out=tfplan.out"
+    ]
+    dir: "terraform"
+
+  # 4. Manual Approval for TEST and PROD
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "Manual Approval"
+    waitFor: ["Terraform Plan"]
+    entrypoint: "bash"
+    args:
+      - -c
+      - |
+        if [[ "${_TFVARS_FILE}" != "dev.tfvars" ]]; then
+          echo "Manual approval required for ${_TFVARS_FILE}. Approve in the Cloud Build UI."
+          exit 1
+        else
+          echo "Dev environment detected, skipping approval."
+        fi
+
+    # Only run this approval step if the env is not dev
+    # (Cloud Build UI will pause here for approval)
+
+  # 5. Terraform Apply (only if previous step passed or is dev)
+  - name: "hashicorp/terraform:light"
+    id: "Terraform Apply"
+    entrypoint: "sh"
+    args: [
+      "-c",
+      "terraform apply -auto-approve tfplan.out"
+    ]
+    dir: "terraform"
+    waitFor: ["Manual Approval"]
+
+  # 6. (Optional) Build & Deploy a Python App to Cloud Run (example for tools/file_parser)
+  - name: "gcr.io/cloud-builders/docker"
+    id: "Build Docker Image"
+    args: [
+      "build",
+      "-t", "gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$SHORT_SHA",
+      "./tools/file_parser"
+    ]
+
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: "Deploy to Cloud Run"
+    entrypoint: "bash"
+    args:
+      - -c
+      - |
+        gcloud run deploy ${_SERVICE_NAME} \
+          --image gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$SHORT_SHA \
+          --region ${_GCP_REGION} \
+          --platform managed \
+          --allow-unauthenticated
+
+# Artifacts (optional): save Terraform state files or logs to Cloud Storage
+# artifacts:
+#   objects:
+#     location: "gs://YOUR_BUCKET_NAME/terraform-state/"
+#     paths: ["terraform/*.tfstate*"]
+
+# Timeout for the entire build (optional)
+timeout: 1200s
