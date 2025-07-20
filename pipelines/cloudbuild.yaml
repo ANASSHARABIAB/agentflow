@@ -6,6 +6,10 @@ substitutions:
   _GCP_REGION: "us-central1"
   _SERVICE_NAME: "file-parser"
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+
 # Trigger this pipeline with _TFVARS_FILE set to dev.tfvars, test.tfvars, or preprod.tfvars as needed.
 
 steps:
