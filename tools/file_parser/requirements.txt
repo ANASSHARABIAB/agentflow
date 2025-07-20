@@ -1,0 +1,3 @@
+# tools/file_parser/requirements.txt
+# Example requirements; use your actual dependencies
+flask
