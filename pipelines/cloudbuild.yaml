@@ -94,5 +94,5 @@ steps:
 #     location: "gs://YOUR_BUCKET_NAME/terraform-state/"
 #     paths: ["terraform/*.tfstate*"]
 
-# Timeout for the entire build (optional)
+# Timeout for the entire build
 timeout: 1200s
