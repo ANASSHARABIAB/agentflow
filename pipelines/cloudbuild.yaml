@@ -1,6 +1,5 @@
 # pipelines/cloudbuild.yaml
 
-# Set the default Terraform var file and GCP region as substitutions.
 substitutions:
   _TFVARS_FILE: "dev.tfvars"
   _GCP_REGION: "us-central1"
@@ -8,9 +7,6 @@ substitutions:
 
 options:
   logging: CLOUD_LOGGING_ONLY
-
-
-# Trigger this pipeline with _TFVARS_FILE set to dev.tfvars, test.tfvars, or preprod.tfvars as needed.
 
 steps:
   # 1. Terraform Format & Lint Check
@@ -57,10 +53,7 @@ steps:
           echo "Dev environment detected, skipping approval."
         fi
 
-    # Only run this approval step if the env is not dev
-    # (Cloud Build UI will pause here for approval)
-
-  # 5. Terraform Apply (only if previous step passed or is dev)
+  # 5. Terraform Apply
   - name: "hashicorp/terraform:light"
     id: "Terraform Apply"
     entrypoint: "sh"
@@ -71,7 +64,7 @@ steps:
     dir: "terraform"
     waitFor: ["Manual Approval"]
 
-  # 6. (Optional) Build & Deploy a Python App to Cloud Run (example for tools/file_parser)
+  # 6. Build Docker Image (only once!)
   - name: "gcr.io/cloud-builders/docker"
     id: "Build Docker Image"
     args: [
@@ -80,6 +73,15 @@ steps:
       "./tools/file_parser"
     ]
 
+  # 7. Push Docker Image
+  - name: "gcr.io/cloud-builders/docker"
+    id: "Push Docker Image"
+    args: [
+      "push",
+      "gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$SHORT_SHA"
+    ]
+
+  # 8. Deploy to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     id: "Deploy to Cloud Run"
     entrypoint: "bash"
@@ -92,11 +94,8 @@ steps:
           --platform managed \
           --allow-unauthenticated
 
-# Artifacts (optional): save Terraform state files or logs to Cloud Storage
+# (Optional) Artifacts for storing tfstate, logs, etc.
 # artifacts:
 #   objects:
 #     location: "gs://YOUR_BUCKET_NAME/terraform-state/"
 #     paths: ["terraform/*.tfstate*"]
-
-# Timeout for the entire build
-timeout: 1200s
