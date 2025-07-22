@@ -9,39 +9,39 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-  # 1. Terraform Format & Lint Check
+  # 1. Terraform Format
   - name: "hashicorp/terraform:light"
     id: "Terraform Format"
     entrypoint: "sh"
     args: ["-c", "terraform fmt -check && echo 'Terraform format check passed.'"]
     dir: "terraform"
 
+  # 2. Terraform Lint
   - name: "ghcr.io/terraform-linters/tflint"
     id: "Terraform Lint"
     args: ["--format", "json"]
     dir: "terraform"
+    waitFor: ["Terraform Format"]
 
-  # 2. Terraform Init
+  # 3. Terraform Init
   - name: "hashicorp/terraform:light"
     id: "Terraform Init"
     entrypoint: "sh"
     args: ["-c", "terraform init"]
     dir: "terraform"
+    waitFor: ["Terraform Lint"]
 
-  # 3. Terraform Plan
+  # 4. Terraform Plan
   - name: "hashicorp/terraform:light"
     id: "Terraform Plan"
     entrypoint: "sh"
-    args: [
-      "-c",
-      "terraform plan -var-file=${_TFVARS_FILE} -out=tfplan.out"
-    ]
+    args: ["-c", "terraform plan -var-file=${_TFVARS_FILE} -out=tfplan.out"]
     dir: "terraform"
+    waitFor: ["Terraform Init"]
 
-  # 4. Manual Approval for TEST and PROD
+  # 5. Manual Approval (for non-dev)
   - name: "gcr.io/cloud-builders/gcloud"
     id: "Manual Approval"
-    waitFor: ["Terraform Plan"]
     entrypoint: "bash"
     args:
       - -c
@@ -52,19 +52,17 @@ steps:
         else
           echo "Dev environment detected, skipping approval."
         fi
+    waitFor: ["Terraform Plan"]
 
-  # 5. Terraform Apply
+  # 6. Terraform Apply
   - name: "hashicorp/terraform:light"
     id: "Terraform Apply"
     entrypoint: "sh"
-    args: [
-      "-c",
-      "terraform apply -auto-approve tfplan.out"
-    ]
+    args: ["-c", "terraform apply -auto-approve tfplan.out"]
     dir: "terraform"
     waitFor: ["Manual Approval"]
 
-  # 6. Build Docker Image (only once!)
+  # 7. Build Docker Image
   - name: "gcr.io/cloud-builders/docker"
     id: "Build Docker Image"
     args: [
@@ -72,16 +70,18 @@ steps:
       "-t", "gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$SHORT_SHA",
       "./tools/file_parser"
     ]
+    waitFor: ["Terraform Apply"]
 
-  # 7. Push Docker Image
+  # 8. Push Docker Image
   - name: "gcr.io/cloud-builders/docker"
     id: "Push Docker Image"
     args: [
       "push",
       "gcr.io/$PROJECT_ID/${_SERVICE_NAME}:$SHORT_SHA"
     ]
+    waitFor: ["Build Docker Image"]
 
-  # 8. Deploy to Cloud Run
+  # 9. Deploy to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     id: "Deploy to Cloud Run"
     entrypoint: "bash"
@@ -93,5 +93,6 @@ steps:
           --region ${_GCP_REGION} \
           --platform managed \
           --allow-unauthenticated
+    waitFor: ["Push Docker Image"]
 
 
