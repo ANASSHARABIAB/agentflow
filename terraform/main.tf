@@ -44,6 +44,21 @@ resource "google_service_account" "upload_service_sa" {
   display_name = "Upload Service Cloud Run Service Account"
 }
 
+# Reference the existing secret in Secret Manager
+data "google_secret_manager_secret_version" "upload_service_sa_key" {
+  secret  = "upload-service-sa-key"
+  project = var.project_id
+  # If you want the latest version, omit version; otherwise, specify it
+}
+
+# Grant Secret Manager Accessor to the Cloud Run service account
+resource "google_project_iam_member" "upload_service_secret_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.upload_service_sa.email}"
+}
+
+# Update Cloud Run to mount the secret as a file and set env var
 resource "google_cloud_run_service" "upload_service" {
   name     = "upload-service"
   location = var.gcs_location
@@ -61,7 +76,33 @@ resource "google_cloud_run_service" "upload_service" {
           name  = "SHARED_BUCKET"
           value = google_storage_bucket.shared_knowledgebase.name
         }
+        env {
+          name  = "GOOGLE_APPLICATION_CREDENTIALS"
+          value = "/secrets/upload-service-sa-key"
+        }
       }
+
+      # Mount the secret as a file
+      volumes {
+        name = "upload-service-sa-key"
+        secret {
+          secret_name = data.google_secret_manager_secret_version.upload_service_sa_key.secret
+          items {
+            key  = data.google_secret_manager_secret_version.upload_service_sa_key.secret
+            path = "upload-service-sa-key"
+          }
+        }
+      }
+
+      containers {
+        # ... existing container config ...
+        volume_mounts {
+          name      = "upload-service-sa-key"
+          mount_path = "/secrets"
+          read_only = true
+        }
+      }
+
       service_account_name = google_service_account.upload_service_sa.email
     }
   }
@@ -79,4 +120,24 @@ resource "google_cloud_run_service_iam_member" "public_invoker" {
   service  = google_cloud_run_service.upload_service.name
   role     = "roles/run.invoker"
   member   = "allUsers"
+}
+
+# Storage Object Admin on both buckets
+resource "google_storage_bucket_iam_member" "user_data_object_admin" {
+  bucket = google_storage_bucket.user_data.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.upload_service_sa.email}"
+}
+
+resource "google_storage_bucket_iam_member" "shared_knowledgebase_object_admin" {
+  bucket = google_storage_bucket.shared_knowledgebase.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.upload_service_sa.email}"
+}
+
+# Firestore User
+resource "google_project_iam_member" "upload_service_firestore_user" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.upload_service_sa.email}"
 }

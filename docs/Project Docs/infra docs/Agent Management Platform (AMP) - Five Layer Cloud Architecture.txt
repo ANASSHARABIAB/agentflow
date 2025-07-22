@@ -1,0 +1,152 @@
+title Agent Management Platform (AMP) - Five Layer Cloud Architecture
+
+// Cross-Cutting Requirements (vertical overlays)
+"Cross-Cutting" [icon: shield] {
+  Networking [icon: gcp-vpc, label: "VPC/Subnets/Firewall"]
+  Security Compliance [icon: gcp-organization, label: "Org Policy/Audit Logging"]
+  CI CD [icon: gcp-cloud-build, label: "CI/CD (Cloud Build, GitOps)"]
+  Budget Alerts [icon: gcp-billing, label: "Budget/Quota Alerts"]
+  Monitoring [icon: gcp-cloud-monitoring, label: "SLO/SLI Dashboards"]
+}
+
+// Pipeline Layer
+Pipeline Layer [icon: pipeline, color: blue] {
+  Data Pipeline [icon: gcp-dataflow, label: "Data Ingestion/Transformation"] {
+    PubSub [icon: gcp-pubsub]
+    Dataflow [icon: gcp-dataflow]
+    Cloud Storage [icon: gcp-storage]
+  }
+  Code Pipeline [icon: gcp-cloud-build, label: "Code/Deployment Pipeline"] {
+    Cloud Build [icon: gcp-cloud-build]
+    Artifact Registry [icon: gcp-artifact-registry]
+    Terraform Modules [icon: terraform]
+    Git [icon: github]
+  }
+  Operations Pipeline [icon: gcp-cloud-functions, label: "Operations Pipeline"] {
+    Cloud Monitoring [icon: gcp-cloud-monitoring]
+    Cloud Logging [icon: gcp-logging]
+    Cloud Functions [icon: gcp-cloud-functions, label: "Automated Rollbacks"]
+  }
+}
+
+// Tools Layer
+Tools Layer [icon: toolbox, color: purple] {
+  Internal Tools [icon: gcp-cloud-run, label: "Internal Tools"] {
+    Cloud Run Tools [icon: gcp-cloud-run]
+    Cloud Functions Tools [icon: gcp-cloud-functions]
+  }
+  External Connectors [icon: plug, label: "External Connectors"] {
+    Azure OpenAI [icon: azure-openai]
+    Vertex AI [icon: gcp-vertex-ai]
+    REST APIs [icon: api]
+  }
+  Secret Management [icon: gcp-secret-manager, label: "Secret Manager"] {
+    Secret Manager [icon: gcp-secret-manager]
+    Rotation [icon: refresh-ccw, label: "Auto Rotation"]
+    Replication [icon: copy, label: "Replication"]
+  }
+}
+
+// Models Layer
+Models Layer [icon: brain, color: orange] {
+  Model Registry [icon: gcp-artifact-registry, label: "Model Registry"] {
+    Artifact Registry [icon: gcp-artifact-registry]
+    Container Registry [icon: gcp-container-registry]
+  }
+  Model Versioning [icon: git-branch, label: "Versioning/Packaging"] {
+    Cloud Build Models [icon: gcp-cloud-build]
+    Quality Gates [icon: check-circle, label: "tflint/Conftest"]
+  }
+  Vector DB [icon: database, label: "Vector DB"] {
+    Vertex Matching Engine [icon: gcp-vertex-ai]
+    Managed Vector Store [icon: database]
+  }
+}
+
+// Agents Layer
+Agents Layer [icon: users, color: green] {
+  Agent Runtimes [icon: gcp-cloud-run, label: "Agent Runtimes"] {
+    Cloud Run Agents [icon: gcp-cloud-run]
+    Cloud Functions Agents [icon: gcp-cloud-functions]
+  }
+  IAM Service Accounts [icon: user-check, label: "IAM/Service Accounts"]
+  Deployment Strategies [icon: shuffle, label: "Deployment Strategies"] {
+    Canary Deploy [icon: flag]
+    Blue Green Deploy [icon: flag]
+    Autoscaling [icon: trending-up]
+  }
+}
+
+// Workflows Layer
+Workflows Layer [icon: flowchart, color: yellow] {
+  Orchestration Engine [icon: gcp-workflows, label: "Orchestration"] {
+    Workflows [icon: gcp-workflows]
+    Cloud Composer [icon: gcp-composer]
+    Cloud Tasks [icon: gcp-tasks]
+  }
+  YAML Definitions [icon: file-text, label: "YAML Definitions"]
+  Error Handling [icon: alert-triangle, label: "Error Handling/Retries"]
+}
+
+// Connections: Data and control flow
+PubSub > Dataflow
+Dataflow > Cloud Storage
+Azure OpenAI > Artifact Registry
+Vertex AI > Artifact Registry
+REST APIs > Artifact Registry
+Artifact Registry > Container Registry
+Container Registry > Cloud Build Models
+Cloud Build Models > Quality Gates
+Quality Gates > Vertex Matching Engine
+Vertex Matching Engine > Managed Vector Store
+Workflows > YAML Definitions
+Workflows > Error Handling
+
+// Code pipeline feeds all layers
+Cloud Build --> Artifact Registry: push models
+Cloud Build --> Workflows: deploy
+
+// Operations pipeline feeds monitoring and error handling
+Cloud Monitoring --> Error Handling
+Cloud Logging --> Error Handling
+Cloud Functions --> Error Handling
+
+// Secret management overlays
+
+// Cross-cutting overlays (dashed lines)
+Networking --> Workflows
+
+Security Compliance --> Workflows
+
+CI CD --> Cloud Build
+CI CD --> Cloud Functions
+CI CD --> Artifact Registry
+CI CD --> Workflows
+
+Budget Alerts --> Cloud Monitoring
+
+Monitoring --> Cloud Monitoring
+Monitoring --> Error Handling
+Monitoring --> Workflows
+Internal Tools > Artifact Registry
+Internal Tools > Artifact Registry
+Managed Vector Store > Agent Runtimes
+Agent Runtimes > Workflows
+Agent Runtimes > Workflows
+Cloud Build --> Agent Runtimes: deploy
+Secret Manager --> Internal Tools
+Secret Manager --> Agent Runtimes
+Secret Manager --> Model Registry
+Networking --> Data Pipeline
+Networking --> Internal Tools
+Networking --> Model Registry
+Networking --> Agent Runtimes
+Security Compliance --> Data Pipeline
+Security Compliance --> Internal Tools
+Security Compliance --> Model Registry
+Security Compliance --> Agent Runtimes
+CI CD --> Internal Tools
+CI CD --> Agent Runtimes
+Budget Alerts --> Agent Runtimes
+Internal Tools < Cloud Storage
+Internal Tools <-- Cloud Build: deploy

@@ -4,5 +4,5 @@ variable "project_id" {
 
 variable "gcs_location" {
   type    = string
-  default = "US"
+  default = "us-central1"
 }

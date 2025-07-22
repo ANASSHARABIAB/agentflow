@@ -1,0 +1,39 @@
+Design a comprehensive cloud architecture for the “Agent Management Platform (AMP)”, a secure, scalable, multi-tenant AI agent orchestration solution. Deliver both a high-level diagram (e.g. in Mermaid or similar) and a detailed narrative. The architecture must follow a five-layer model and leverage a private GCP tenant:
+
+1. **Pipeline Layer**  
+   - Automated data/knowledge ingestion & transformation (e.g., Cloud Dataflow or Pub/Sub, Cloud Storage)  
+   - Code/deployment pipelines (Terraform modules in Artifact Registry, Cloud Build triggered by Git branches: feature/*→dev, develop→test, main→preprod)  
+   - Operations pipelines (Cloud Monitoring, Cloud Logging, automated rollbacks via Cloud Functions)
+
+2. **Tools Layer**  
+   - Internal tools hosted in private service catalog (Cloud Run/Cloud Functions)  
+   - External third-party connectors (Azure OpenAI Service, Vertex AI, REST APIs)  
+   - Secret management (Secret Manager, automatic rotation, replication)
+
+3. **Models Layer**  
+   - Containerized AI/ML models stored in Artifact Registry or Container Registry  
+   - Model versioning & packaging workflows (Cloud Build, CI quality gates with tflint, Conftest)  
+   - Vector DB for RAG (e.g., Vertex AI Matching Engine or managed vector store)
+
+4. **Agents Layer**  
+   - Microservices for agent runtimes on Cloud Run & Cloud Functions  
+   - IAM roles & service accounts scoped per agent, least-privilege access  
+   - Canary & blue-green deployments, horizontal autoscaling
+
+5. **Workflows Layer**  
+   - Orchestration via Workflows, Cloud Composer or Cloud Tasks  
+   - YAML-driven definitions stored alongside code  
+   - Error handling, retries, conditional branches
+
+**Cross-cutting requirements:**  
+- Networking: VPC with subnets, private Google access, firewall rules, Cloud NAT  
+- Security & Compliance: Org Policy Service for region restrictions, Audit Logging, SOC2/GDPR controls  
+- CI/CD: GitOps with Cloud Build (terraform init/plan/apply), manual approvals for prod  
+- Environments: Parameterized tfvars for dev/test/preprod, service account per env  
+- Cost & Budget: Billing Budget API alerts, quota caps, automated cost reports  
+- Monitoring & Alerting: SLO/SLI dashboards in Cloud Monitoring, Pub/Sub-driven alerts  
+- Scalability: Auto-scaling Cloud Run, GKE or GKE Autopilot with HPA; multiregional storage with lifecycle rules  
+
+Produce:  
+1. A clear, layered diagram (Mermaid syntax or similar) showing components and data flows.  
+2. A narrative explaining each layer, key services, and how they interconnect to meet security, compliance, CI/CD, and autoscaling goals.

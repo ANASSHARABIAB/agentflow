@@ -1,0 +1,720 @@
+---
+alwaysApply: true
+---
+AgentFlow Project Rules
+
+Overview
+
+AgentFlow is a secure, scalable, multi-tenant AI agent orchestration platform designed to empower organizations by leveraging AI for productivity, workflow automation, and knowledge worker assistance. Deployed on a private Google Cloud Platform (GCP) tenant, it follows a five-layer architecture model and adheres to best practices for Infrastructure as Code (IaC) using Terraform, version control via GitHub, and Continuous Integration/Continuous Deployment (CI/CD). This rules file outlines the development, deployment, and operational guidelines to ensure consistency, scalability, security, and maintainability throughout the project lifecycle.
+
+Development Principles
+
+1. Five-Layer Architecture
+
+AgentFlow adopts a modular five-layer architecture to ensure clear separation of concerns and scalability. Each layer consumes services from the layer below and exposes well-documented interfaces to the layer above.
+
+Pipeline Layer
+
+
+
+
+
+Data/Knowledge Base Pipeline: Automate ingestion, transformation, and versioning of data using GCP services like Cloud Dataflow, Pub/Sub, and Cloud Storage.
+
+
+
+Code/Deployment Pipeline: Implement Terraform for IaC, stored in a GitHub repository, with deployments triggered by commits. Branching strategy: feature/* → dev, develop → test, main → preprod.
+
+
+
+Operations Pipeline: Enable monitoring, logging, and automated rollbacks using Cloud Monitoring, Cloud Logging, and Cloud Functions.
+
+Tools Layer
+
+
+
+
+
+Internal Tools: Develop custom tools hosted on Cloud Run and Cloud Functions within a private service catalog.
+
+
+
+External Connectors: Integrate with Azure OpenAI, Vertex AI, and REST APIs for third-party services.
+
+
+
+Secret Management: Use Secret Manager for secure storage, rotation, and replication of secrets.
+
+Models Layer
+
+
+
+
+
+Model Registry: Store containerized AI/ML models in Artifact Registry or Container Registry.
+
+
+
+Model Versioning & Packaging: Use Cloud Build for versioning and packaging, with quality gates (e.g., tflint, Conftest) to enforce standards.
+
+
+
+Vector Database: Implement Vertex AI Matching Engine or a managed vector store for Retrieval-Augmented Generation (RAG).
+
+Agents Layer
+
+
+
+
+
+Agent Runtimes: Deploy agent runtimes as microservices on Cloud Run and Cloud Functions.
+
+
+
+IAM & Service Accounts: Assign least-privilege IAM roles and service accounts per agent.
+
+
+
+Deployment Strategies: Support canary and blue-green deployments with horizontal autoscaling.
+
+Workflows Layer
+
+
+
+
+
+Orchestration Engine: Use Google Workflows, Cloud Composer, or Cloud Tasks for workflow orchestration.
+
+
+
+YAML Definitions: Store workflow definitions in YAML alongside code in the GitHub repository.
+
+
+
+Error Handling: Implement error handling, retries, and conditional branches.
+
+2. Infrastructure as Code (IaC) with Terraform
+
+
+
+
+
+Tool: Use Terraform exclusively for provisioning and managing all infrastructure components.
+
+
+
+Declarative IaC:
+
+
+
+
+
+Define infrastructure in Terraform modules stored in a GitHub repository.
+
+
+
+Enforce style and policy with tools like tflint, terraform fmt, and Conftest (OPA).
+
+
+
+Module Reusability:
+
+
+
+
+
+Publish reusable Terraform modules (e.g., networking, IAM, storage, AI services) in a private Artifact Registry.
+
+
+
+Enforce module versioning for stability across environments.
+
+
+
+Immutable Infrastructure:
+
+
+
+
+
+Avoid in-place resource mutations; use resource replacement and canary deployments.
+
+
+
+Use container images with versioned tags for compute workloads.
+
+3. Version Control with GitHub
+
+
+
+
+
+Repository: Host all code, IaC, and documentation in a GitHub repository named AgentFlow.
+
+
+
+Branching Strategy:
+
+
+
+
+
+main: Production-ready code, deploys to preprod.
+
+
+
+develop: Integration branch, deploys to test.
+
+
+
+feature/*: Feature branches, deploy to dev.
+
+
+
+Commit Frequency:
+
+
+
+
+
+Commit changes frequently to ensure incremental progress and traceability.
+
+
+
+Save and commit at least daily, or after completing significant tasks (e.g., new Terraform module, workflow implementation, bug fix).
+
+
+
+Use descriptive commit messages: [Layer/Feature] Brief description (e.g., [Pipeline Layer] Add Cloud Dataflow for data ingestion).
+
+
+
+GitOps:
+
+
+
+
+
+Treat all infrastructure changes as pull requests (PRs) with mandatory peer reviews.
+
+
+
+Use Cloud Build triggers to automate deployments based on branch updates.
+
+4. Deployment on GCP
+
+
+
+
+
+Private GCP Tenant:
+
+
+
+
+
+Deploy AgentFlow on a private GCP tenant for data residency, security, and compliance.
+
+
+
+Configure VPC with subnets, private Google access, firewall rules, and Cloud NAT.
+
+
+
+Core GCP Services:
+
+
+
+
+
+Utilize Cloud Run, Cloud Functions, Cloud Storage, Cloud Build, Secret Manager, Dataflow, Pub/Sub, and Vertex AI Matching Engine.
+
+
+
+Environment Management:
+
+
+
+
+
+Parameterize configurations using Terraform variables (tfvars) for each environment: dev.tfvars, test.tfvars, preprod.tfvars.
+
+
+
+Define one service account per environment, with keys rotated via Secret Manager.
+
+
+
+Automate Secret Manager replication across environments using Terraform.
+
+
+
+CI/CD Pipeline:
+
+
+
+
+
+Define pipelines in cloudbuild.yaml with steps: terraform init → terraform plan → policy checks → manual approval (for test and preprod) → terraform apply.
+
+
+
+Use Cloud Build for automated testing (unit, integration) and deployment.
+
+
+
+Implement rollbacks using Terraform state versioning and Cloud Build on failed smoke tests.
+
+
+
+Scalability:
+
+
+
+
+
+Use Cloud Run or GKE with Horizontal Pod Autoscaler (HPA) for compute workloads.
+
+
+
+Choose multi-regional Cloud Storage with lifecycle rules for storage.
+
+
+
+Use managed databases like Cloud SQL with read replicas or Bigtable for high throughput.
+
+
+
+Autoscale load balancers with global backend services.
+
+5. Security & Compliance
+
+
+
+
+
+Role-Based Access Control (RBAC): Restrict access based on user roles.
+
+
+
+Encryption: Ensure data encryption at rest and in transit.
+
+
+
+Audit Logging: Enable comprehensive audit logging on all projects.
+
+
+
+Compliance Controls:
+
+
+
+
+
+Use Org Policy Service to enforce policies (e.g., allowed regions, machine types).
+
+
+
+Conduct periodic configuration scans using Forseti or Config Connector.
+
+
+
+Ensure SOC2 and GDPR compliance with region restrictions and data residency controls.
+
+
+
+Secrets Management:
+
+
+
+
+
+Automate secret rotation using Secret Manager.
+
+
+
+Never store credentials in code; reference secrets in pipelines using gcloud secrets versions access latest in Cloud Build.
+
+6. Monitoring & Analytics
+
+
+
+
+
+Performance Monitoring:
+
+
+
+
+
+Implement real-time tracking with Cloud Monitoring.
+
+
+
+Define SLOs/SLIs and set up dashboards for key metrics (e.g., latency, success rates, agent usage, model performance).
+
+
+
+Alerting:
+
+
+
+
+
+Configure Pub/Sub-driven alerts for failures, anomalies, and SLA breaches.
+
+
+
+Usage Analytics:
+
+
+
+
+
+Develop customizable reports for workflow usage and performance.
+
+7. Maintainability & Continuous Improvement
+
+
+
+
+
+Minimal Deployments: Combine related resources in Terraform modules to reduce deployment time.
+
+
+
+Documentation as Code: Maintain pipeline, module, and API documentation in Markdown alongside code in the GitHub repository.
+
+
+
+Versioning & Changelog:
+
+
+
+
+
+Tag every release in GitHub.
+
+
+
+Auto-publish changelogs via CI/CD pipelines.
+
+
+
+Feedback Mechanism:
+
+
+
+
+
+Implement A/B testing for new features.
+
+
+
+Collect user feedback to prioritize improvements.
+
+8. Cost & Budget Management
+
+
+
+
+
+Budgets & Alerts:
+
+
+
+
+
+Define budgets and alerts using the Billing Budget API.
+
+
+
+Set cost ceilings per environment with automated notifications via Cloud Functions.
+
+
+
+Quota Management: Cap API usage with Quota Management to control costs.
+
+
+
+Cost Optimization:
+
+
+
+
+
+Schedule automated budget reports to review costs.
+
+
+
+Optimize idle resources regularly.
+
+9. User Experience
+
+
+
+
+
+Non-Technical Users:
+
+
+
+
+
+Provide guided workflow execution, role-based pre-built workflows, interactive tutorials, tooltips, and performance dashboards.
+
+
+
+Technical Users:
+
+
+
+
+
+Offer a drag-and-drop workflow canvas, JSON/YAML editor, live debugging, logs, and version control.
+
+
+
+General Features:
+
+
+
+
+
+Ensure responsive design for desktop and mobile.
+
+
+
+Implement consistent branding, dark mode, and accessibility features (e.g., screen reader support, keyboard navigation).
+
+10. Training, Documentation & Support
+
+
+
+
+
+User Guides: Develop comprehensive guides for both non-technical and technical users.
+
+
+
+Video Tutorials: Create video tutorials and interactive walkthroughs for common tasks.
+
+
+
+In-App Help: Provide contextual tooltips and an in-app help center.
+
+
+
+Support System: Implement a support ticketing system and community forum.
+
+
+
+Developer Documentation: Provide detailed API documentation for custom integrations and extensions.
+
+11. Best Practices
+
+
+
+
+
+Adopt GitOps: Use PRs for all changes with peer reviews.
+
+
+
+Policy as Code: Embed security and compliance rules in CI using OPA/Gatekeeper.
+
+
+
+Feature Toggles: Deploy infrastructure early and gate new services via runtime flags.
+
+
+
+Chaos Testing: Use fault injection frameworks to validate resilience.
+
+
+
+Continuous Learning: Conduct quarterly reviews of IaC and pipelines, adopting community modules and patterns.
+
+12. Terraform and Infrastructure as Code (IaC) Best Practices
+
+You are an expert in Terraform and Infrastructure as Code (IaC) for cloud platforms such as AWS, Azure, and GCP. This section provides detailed guidelines for using Terraform effectively in the AgentFlow project, ensuring that infrastructure is managed efficiently, securely, and scalably on GCP, while incorporating best practices applicable across major cloud providers.
+
+Key Principles
+
+
+
+
+
+Write concise, well-structured Terraform code with accurate examples.
+
+
+
+Organize infrastructure resources into reusable modules.
+
+
+
+Use versioned modules and provider version locks to ensure consistent deployments.
+
+
+
+Avoid hardcoded values; always use variables for flexibility.
+
+
+
+Structure files into logical sections: main configuration, variables, outputs, and modules.
+
+Terraform Best Practices
+
+
+
+
+
+Remote Backends: Use remote backends (e.g., S3 for AWS, Azure Blob for Azure, GCS for GCP) for state management. For AgentFlow, use GCP Cloud Storage to enable collaboration and state locking.
+
+
+
+State Locking and Encryption: Enable state locking and use encryption for security.
+
+
+
+Workspaces: Utilize workspaces for environment separation (e.g., dev, staging, prod).
+
+
+
+Resource Organization: Organize resources by service or application domain (e.g., networking, compute).
+
+
+
+Code Formatting: Always run terraform fmt to maintain consistent code formatting.
+
+
+
+Validation and Linting: Use terraform validate and linting tools such as tflint or terrascan to catch errors early.
+
+
+
+Sensitive Information: Store sensitive information in Vault, AWS Secrets Manager, Azure Key Vault, or GCP Secret Manager. For AgentFlow, use GCP Secret Manager.
+
+Error Handling and Validation
+
+
+
+
+
+Use validation rules for variables to prevent incorrect input values.
+
+
+
+Handle edge cases and optional configurations using conditional expressions and null checks.
+
+
+
+Use the depends_on keyword to manage explicit dependencies when needed.
+
+Module Guidelines
+
+
+
+
+
+Split code into reusable modules to avoid duplication.
+
+
+
+Use outputs from modules to pass information between configurations.
+
+
+
+Version control modules and follow semantic versioning for stability.
+
+
+
+Document module usage with examples and clearly define inputs/outputs in README.md files.
+
+Security Practices
+
+
+
+
+
+Avoid hardcoding sensitive values (e.g., passwords, API keys); instead, use Vault, environment variables, or cloud-native secret management solutions like GCP Secret Manager.
+
+
+
+Ensure encryption for storage and communication (e.g., enable encryption for S3 buckets, Azure Storage, or GCS buckets).
+
+
+
+Define access controls and security groups for each cloud resource.
+
+
+
+Follow cloud provider-specific security guidelines (e.g., AWS, Azure, GCP) for best practices, with a focus on GCP for AgentFlow.
+
+Performance Optimization
+
+
+
+
+
+Use resource targeting (-target) to speed up resource-specific changes.
+
+
+
+Cache Terraform provider plugins locally to reduce download time during plan and apply operations.
+
+
+
+Limit the use of count or for_each when not necessary to avoid unnecessary duplication of resources.
+
+Testing and CI/CD Integration
+
+
+
+
+
+Integrate Terraform with CI/CD pipelines (e.g., GitHub Actions, GitLab CI, or Cloud Build for GCP) to automate testing, planning, and deployment.
+
+
+
+Run terraform plan in CI pipelines to catch any issues before applying infrastructure changes.
+
+
+
+Use tools like terratest to write unit tests for Terraform modules.
+
+
+
+Set up automated tests for critical infrastructure paths (e.g., network connectivity, IAM policies).
+
+Key Conventions
+
+
+
+
+
+Always lock provider versions to avoid breaking changes.
+
+
+
+Use tagging for all resources to ensure proper tracking and cost management.
+
+
+
+Ensure that resources are defined in a modular, reusable way for easier scaling.
+
+
+
+Document your code and configurations with README.md files, explaining the purpose of each module.
+
+Documentation and Learning Resources
+
+
+
+
+
+Refer to the official Terraform documentation for best practices and guidelines.
+
+
+
+Stay updated with cloud provider-specific Terraform modules and documentation for AWS, Azure, and GCP, with a focus on GCP for AgentFlow.
