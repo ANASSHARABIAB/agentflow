@@ -94,8 +94,4 @@ steps:
           --platform managed \
           --allow-unauthenticated
 
-# (Optional) Artifacts for storing tfstate, logs, etc.
-# artifacts:
-#   objects:
-#     location: "gs://YOUR_BUCKET_NAME/terraform-state/"
-#     paths: ["terraform/*.tfstate*"]
+
