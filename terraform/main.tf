@@ -66,7 +66,7 @@ resource "google_cloud_run_service" "upload_service" {
   template {
     spec {
       containers {
-        image = "gcr.io/${var.project_id}/upload-service:latest" # Adjust tag as needed
+        image = "gcr.io/agentflow-466510/upload_service:latest"
 
         env {
           name  = "USER_BUCKET"
@@ -77,29 +77,18 @@ resource "google_cloud_run_service" "upload_service" {
           value = google_storage_bucket.shared_knowledgebase.name
         }
         env {
-          name  = "GOOGLE_APPLICATION_CREDENTIALS"
-          value = "/secrets/upload-service-sa-key"
-        }
-      }
-
-      # Mount the secret as a file
-      volumes {
-        name = "upload-service-sa-key"
-        secret {
-          secret_name = data.google_secret_manager_secret_version.upload_service_sa_key.secret
-          items {
-            key  = data.google_secret_manager_secret_version.upload_service_sa_key.secret
-            path = "upload-service-sa-key"
+          name = "GOOGLE_APPLICATION_CREDENTIALS"
+          value_from {
+            secret_key_ref {
+              name = "upload-service-sa-key"
+              key  = "latest" # or the specific key/version you want
+            }
           }
         }
-      }
 
-      containers {
-        # ... existing container config ...
         volume_mounts {
-          name      = "upload-service-sa-key"
+          name       = "upload-service-sa-key"
           mount_path = "/secrets"
-          read_only = true
         }
       }
 
