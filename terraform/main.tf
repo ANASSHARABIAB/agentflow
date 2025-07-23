@@ -44,13 +44,6 @@ resource "google_service_account" "upload_service_sa" {
   display_name = "Upload Service Cloud Run Service Account"
 }
 
-# Reference the existing secret in Secret Manager
-data "google_secret_manager_secret_version" "upload_service_sa_key" {
-  secret  = "upload-service-sa-key"
-  project = var.project_id
-  # If you want the latest version, omit version; otherwise, specify it
-}
-
 # Grant Secret Manager Accessor to the Cloud Run service account
 resource "google_project_iam_member" "upload_service_secret_accessor" {
   project = var.project_id
