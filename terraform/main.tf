@@ -30,7 +30,7 @@ resource "google_storage_bucket" "shared_knowledgebase" {
   }
 }
 
-# User data bucket (documents, saved prompts, uploads)
+# User data bucket (documents, saved prompts, uploads, etc.)
 resource "google_storage_bucket" "user_data" {
   name                        = "${var.project_id}-user-data"
   location                    = var.gcs_location
