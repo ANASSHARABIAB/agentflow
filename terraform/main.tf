@@ -13,7 +13,7 @@ provider "google" {
   region  = var.gcs_location
 }
 
-# Global bucket for shared knowledge base and prompts 
+# Global bucket for shared knowledge base and prompts
 resource "google_storage_bucket" "shared_knowledgebase" {
   name                        = "${var.project_id}-shared-knowledgebase"
   location                    = var.gcs_location
