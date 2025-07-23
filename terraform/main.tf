@@ -38,7 +38,7 @@ resource "google_storage_bucket" "user_data" {
   uniform_bucket_level_access = true
 }
 
-# Service account for Cloud Run
+# Service account for Cloud Run service
 resource "google_service_account" "upload_service_sa" {
   account_id   = "upload-service-sa"
   display_name = "Upload Service Cloud Run Service Account"
